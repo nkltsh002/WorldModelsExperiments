@@ -1,0 +1,35 @@
+FROM tensorflow/tensorflow:1.8.0-py3
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python-opengl \
+    libsdl2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.2.0 \
+    matplotlib==2.2.2 \
+    pillow==5.1.0 \
+    imageio==2.3.0
+
+# Create working directory
+WORKDIR /app
+
+# Copy the doomrnn code
+COPY doomrnn /app/doomrnn
+
+# Create a simple test script to test basic components
+RUN echo 'import numpy as np; import tensorflow as tf; print("TensorFlow version:", tf.__version__); print("NumPy version:", np.__version__); print("Basic dependencies installed successfully")' > test_basic.py
+
+# Create simple simulator that doesn't need VizDoom
+RUN echo 'import numpy as np; import gym; env = gym.make("CartPole-v0"); print("Gym environment created successfully"); obs = env.reset(); print("Observation shape:", obs.shape); print("Environment test successful")' > test_gym.py
+
+# Entry point
+ENTRYPOINT ["/bin/bash"]

@@ -1,0 +1,7 @@
+FROM tensorflow/tensorflow:1.8.0-py3
+
+# Create a simple test script
+RUN echo 'import tensorflow as tf; print("TensorFlow version:", tf.__version__); print("TensorFlow is working!")' > /test.py
+
+# Run the test
+CMD ["python3", "/test.py"]

@@ -1,0 +1,53 @@
+FROM tensorflow/tensorflow:1.8.0-py3
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python-opengl \
+    libsdl2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.2.0 \
+    matplotlib==2.2.2 \
+    pillow==5.1.0 \
+    imageio==2.3.0
+
+# Create working directory and results directory
+WORKDIR /app
+RUN mkdir -p /app/results
+
+# Copy the doomrnn code
+COPY doomrnn /app/doomrnn
+
+# Create a proper test script
+RUN echo '#!/usr/bin/env python3' > /app/test.py && \
+    echo 'import tensorflow as tf' >> /app/test.py && \
+    echo 'import numpy as np' >> /app/test.py && \
+    echo 'import os' >> /app/test.py && \
+    echo 'print("TensorFlow test starting...")' >> /app/test.py && \
+    echo 'print("TensorFlow version:", tf.__version__)' >> /app/test.py && \
+    echo 'print("NumPy version:", np.__version__)' >> /app/test.py && \
+    echo 'print("Dependencies loaded successfully")' >> /app/test.py && \
+    echo 'results_file = "/app/results/test_results.txt"' >> /app/test.py && \
+    echo 'with open(results_file, "w") as f:' >> /app/test.py && \
+    echo '    f.write("TensorFlow version: " + tf.__version__ + "\\n")' >> /app/test.py && \
+    echo '    f.write("NumPy version: " + np.__version__ + "\\n")' >> /app/test.py && \
+    echo '    f.write("Test completed successfully\\n")' >> /app/test.py && \
+    echo 'print("Results written to:", results_file)' >> /app/test.py && \
+    echo 'print("Test completed successfully")' >> /app/test.py
+
+# Make the test script executable
+RUN chmod +x /app/test.py
+
+# Volume for results
+VOLUME /app/results
+
+# Run the test script
+CMD ["/usr/bin/python3", "/app/test.py"]

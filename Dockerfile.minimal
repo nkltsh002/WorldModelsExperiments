@@ -1,0 +1,43 @@
+FROM tensorflow/tensorflow:1.8.0-py3
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    zlib1g-dev \
+    libsdl2-dev \
+    libjpeg-dev \
+    nasm \
+    tar \
+    libbz2-dev \
+    libgtk2.0-dev \
+    cmake \
+    git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir numpy==1.13.3 gym==0.9.4 cma==2.2.0 scipy==1.2.0
+
+# Install VizDoom without dependencies we don't need
+RUN pip install --no-cache-dir doom-py
+RUN pip install --no-cache-dir git+https://github.com/ppaquette/gym-doom.git
+
+# Create directory for tests
+RUN mkdir -p /app/test
+
+# Create test script
+RUN echo 'print("VizDoom Docker test environment initialized")' > /app/test/test.py
+RUN echo 'import numpy as np' >> /app/test/test.py
+RUN echo 'import gym' >> /app/test/test.py
+RUN echo 'print("NumPy version:", np.__version__)' >> /app/test/test.py
+RUN echo 'print("Gym version:", gym.__version__)' >> /app/test/test.py
+RUN echo 'try:' >> /app/test/test.py
+RUN echo '    import ppaquette_gym_doom' >> /app/test/test.py
+RUN echo '    print("VizDoom environment is installed")' >> /app/test/test.py
+RUN echo 'except ImportError:' >> /app/test/test.py
+RUN echo '    print("VizDoom environment not installed")' >> /app/test/test.py
+
+# Command to run
+CMD ["python", "/app/test/test.py"]

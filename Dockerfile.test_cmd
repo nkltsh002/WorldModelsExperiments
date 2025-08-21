@@ -1,0 +1,42 @@
+FROM tensorflow/tensorflow:1.8.0-py3
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python-opengl \
+    libsdl2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.2.0 \
+    matplotlib==2.2.2 \
+    pillow==5.1.0 \
+    imageio==2.3.0
+
+# Create working directory
+WORKDIR /app
+
+# Copy the doomrnn code
+COPY doomrnn /app/doomrnn
+
+# Create a simple test script to verify TensorFlow
+RUN echo 'print("TensorFlow test starting...")' > /app/test.py && \
+    echo 'import tensorflow as tf' >> /app/test.py && \
+    echo 'import numpy as np' >> /app/test.py && \
+    echo 'print("TensorFlow version:", tf.__version__)' >> /app/test.py && \
+    echo 'print("NumPy version:", np.__version__)' >> /app/test.py && \
+    echo 'print("Dependencies loaded successfully")' >> /app/test.py && \
+    echo 'a = np.array([1, 2, 3])' >> /app/test.py && \
+    echo 'b = tf.constant([4, 5, 6])' >> /app/test.py && \
+    echo 'print("Array created:", a)' >> /app/test.py && \
+    echo 'print("Tensor created:", b)' >> /app/test.py && \
+    echo 'print("Test completed successfully")' >> /app/test.py
+
+# Run the test on container startup
+CMD ["python3", "/app/test.py"]

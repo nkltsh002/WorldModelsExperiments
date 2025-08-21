@@ -1,0 +1,16 @@
+name: vizdoom
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.7
+  - pip=20.0
+  - pip:
+    - tensorflow==1.8.0
+    - numpy==1.13.3
+    - gym==0.9.4
+    - cma==2.2.0
+    - mpi4py==2.0.0
+    - scipy==1.2.0
+    - git+https://github.com/ppaquette/gym-doom.git
+    - doom-py

@@ -1,0 +1,28 @@
+FROM mihahauke/vizdoom:latest
+
+# Set up additional Python dependencies
+RUN pip3 install --upgrade pip
+RUN pip3 install --no-cache-dir \
+    tensorflow==1.8.0 \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.2.0 \
+    matplotlib==2.2.2 \
+    pillow==5.1.0 \
+    imageio==2.3.0
+
+# Install ppaquette_gym_doom
+RUN pip3 install --no-cache-dir git+https://github.com/ppaquette/gym-doom.git
+
+# Create app directory
+WORKDIR /app
+
+# Copy the World Models code
+COPY doomrnn /app/doomrnn
+
+# Create a test script
+RUN echo "import vizdoom; print('ViZDoom version:', vizdoom.__version__); print('Installation successful!')" > test_vizdoom.py
+
+# Entry point
+ENTRYPOINT ["/bin/bash"]

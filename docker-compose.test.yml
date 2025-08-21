@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - ./doomrnn:/app/doomrnn
+    environment:
+      - DISPLAY=${DISPLAY}
+    command: python /app/doomrnn/test_docker.py
+    
+  extract:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - ./doomrnn:/app/doomrnn
+    environment:
+      - DISPLAY=${DISPLAY}
+    command: python /app/doomrnn/extract_small_docker.py
