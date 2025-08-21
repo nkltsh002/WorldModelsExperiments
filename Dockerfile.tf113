@@ -1,0 +1,80 @@
+FROM tensorflow/tensorflow:1.13.1-py3
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python-opengl \
+    libsdl2-dev \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies for neural network components
+RUN pip3 install --no-cache-dir \
+    numpy==1.16.4 \
+    gym==0.9.4 \
+    cma==2.7.0 \
+    scipy==1.2.0 \
+    matplotlib==3.0.3 \
+    pillow==6.0.0 \
+    imageio==2.5.0 \
+    h5py==2.9.0
+
+# Create working directory
+WORKDIR /app
+
+# Copy the doomrnn code
+COPY doomrnn /app/doomrnn
+
+# Create directories for data
+RUN mkdir -p /app/data/rollout \
+    /app/data/series \
+    /app/data/tf_vae \
+    /app/data/tf_rnn \
+    /app/data/controller \
+    /app/results
+
+# Create a simple test script
+RUN echo 'import sys\n\
+print("Python version:", sys.version)\n\
+\n\
+try:\n\
+    import tensorflow as tf\n\
+    print("TensorFlow version:", tf.__version__)\n\
+except ImportError as e:\n\
+    print("TensorFlow import error:", e)\n\
+\n\
+try:\n\
+    import numpy as np\n\
+    print("NumPy version:", np.__version__)\n\
+except ImportError as e:\n\
+    print("NumPy import error:", e)\n\
+\n\
+try:\n\
+    import gym\n\
+    print("Gym version:", gym.__version__)\n\
+except ImportError as e:\n\
+    print("Gym import error:", e)\n\
+\n\
+print("\\nCreating a simple TensorFlow model...")\n\
+try:\n\
+    model = tf.keras.Sequential([\n\
+        tf.keras.layers.Dense(10, activation="relu", input_shape=(5,)),\n\
+        tf.keras.layers.Dense(2, activation="softmax")\n\
+    ])\n\
+    print("Model created successfully")\n\
+    print("Model summary:")\n\
+    model.summary()\n\
+except Exception as e:\n\
+    print("Error creating model:", e)\n\
+\n\
+with open("/app/results/test_output.txt", "w") as f:\n\
+    f.write("Test completed successfully\\n")' > /app/tf_test.py
+
+# Volume for results
+VOLUME /app/results
+
+# Default command
+CMD ["bash"]

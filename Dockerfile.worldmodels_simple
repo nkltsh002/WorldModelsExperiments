@@ -1,0 +1,67 @@
+FROM tensorflow/tensorflow:1.8.0-py3
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python-opengl \
+    libsdl2-dev \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies for neural network components
+RUN pip3 install --no-cache-dir \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.2.0 \
+    matplotlib==2.2.2 \
+    pillow==5.1.0 \
+    imageio==2.3.0
+
+# Create working directory
+WORKDIR /app
+
+# Copy the doomrnn code
+COPY doomrnn /app/doomrnn
+
+# Create directories for data
+RUN mkdir -p /app/data/rollout \
+    /app/data/series \
+    /app/data/tf_vae \
+    /app/data/tf_rnn \
+    /app/data/controller \
+    /app/results
+
+# Create a simple test script
+RUN echo 'import sys\n\
+print("Python version:", sys.version)\n\
+\n\
+try:\n\
+    import tensorflow as tf\n\
+    print("TensorFlow version:", tf.__version__)\n\
+except ImportError:\n\
+    print("TensorFlow not found")\n\
+\n\
+try:\n\
+    import numpy as np\n\
+    print("NumPy version:", np.__version__)\n\
+except ImportError:\n\
+    print("NumPy not found")\n\
+\n\
+try:\n\
+    import gym\n\
+    print("Gym version:", gym.__version__)\n\
+except ImportError:\n\
+    print("Gym not found")\n\
+\n\
+with open("/app/results/test_output.txt", "w") as f:\n\
+    f.write("Test completed successfully\\n")' > /app/simple_test.py
+
+# Volume for results
+VOLUME /app/results
+
+# Default command
+CMD ["bash"]

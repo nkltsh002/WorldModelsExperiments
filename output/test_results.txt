@@ -1,0 +1,3 @@
+TensorFlow version: 1.8.0
+NumPy version: 1.14.2
+Test completed successfully

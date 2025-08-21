@@ -1,0 +1,65 @@
+FROM tensorflow/tensorflow:1.8.0-py3
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python-opengl \
+    libsdl2-dev \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies for neural network components
+RUN pip3 install --no-cache-dir \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.2.0 \
+    matplotlib==2.2.2 \
+    pillow==5.1.0 \
+    imageio==2.3.0 \
+    h5py==2.7.1
+
+# Create working directory
+WORKDIR /app
+
+# Copy the doomrnn code
+COPY doomrnn /app/doomrnn
+
+# Create directories for data
+RUN mkdir -p /app/data/rollout \
+    /app/data/series \
+    /app/data/tf_vae \
+    /app/data/tf_rnn \
+    /app/data/controller
+
+# Create test script
+RUN echo 'import tensorflow as tf\n\
+import numpy as np\n\
+import os\n\
+import sys\n\
+\n\
+print("TensorFlow version:", tf.__version__)\n\
+print("NumPy version:", np.__version__)\n\
+print("Environment setup successful")\n\
+\n\
+# List available modules to verify imports\n\
+import pkgutil\n\
+print("\\nAvailable modules:")\n\
+for module in sorted([module.name for module in pkgutil.iter_modules()]):\n\
+    print(" -", module)\n\
+\n\
+# Verify that we can create a simple model\n\
+print("\\nCreating a simple TensorFlow model...")\n\
+model = tf.keras.Sequential([\n\
+    tf.keras.layers.Dense(10, activation="relu", input_shape=(5,)),\n\
+    tf.keras.layers.Dense(2, activation="softmax")\n\
+])\n\
+print("Model created successfully")\n\
+print("Model summary:")\n\
+model.summary()' > /app/test_nn.py
+
+# Default command
+CMD ["bash"]

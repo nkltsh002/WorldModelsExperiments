@@ -1,0 +1,50 @@
+FROM python:3.6-slim
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libsdl2-dev \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install \
+    tensorflow==1.8.0 \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.0.0 \
+    matplotlib==2.2.2 \
+    pillow==5.1.0 \
+    imageio==2.3.0
+
+# Create working directory
+WORKDIR /app
+
+# Copy the doomrnn code
+COPY doomrnn /app/doomrnn
+
+# Create directories for data
+RUN mkdir -p /app/data/rollout \
+    /app/data/series \
+    /app/data/tf_vae \
+    /app/data/tf_rnn \
+    /app/data/controller \
+    /app/results
+
+# Create a basic test script for VAE
+RUN echo 'import tensorflow as tf\n\
+import numpy as np\n\
+print("TensorFlow:", tf.__version__)\n\
+print("NumPy:", np.__version__)\n\
+print("Successfully imported TensorFlow and NumPy")\n\
+with open("/app/results/test_complete.txt", "w") as f:\n\
+    f.write("Test completed successfully\\n")' > /app/basic_test.py
+
+# Create volume for results
+VOLUME /app/results
+
+# Default command
+CMD ["bash"]

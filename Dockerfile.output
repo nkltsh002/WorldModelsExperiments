@@ -1,0 +1,8 @@
+FROM tensorflow/tensorflow:1.8.0-py3
+
+# Create a simple script to write test output to a file
+RUN mkdir -p /output
+RUN echo 'import tensorflow as tf\nimport numpy as np\nimport os\n\nwith open("/output/test_results.txt", "w") as f:\n    f.write("TensorFlow version: " + tf.__version__ + "\\n")\n    f.write("NumPy version: " + str(np.__version__) + "\\n")\n    f.write("Test completed successfully\\n")\n\nprint("Test completed successfully")' > /test.py
+
+VOLUME /output
+CMD ["python", "/test.py"]
