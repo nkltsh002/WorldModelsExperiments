@@ -11,7 +11,7 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 
-from scipy.misc import imresize as resize
+from skimage.transform import resize 
 
 np.set_printoptions(precision=4, edgeitems=6, linewidth=100, suppress=True)
 
@@ -662,7 +662,7 @@ class DoomCoverRNNEnv(gym.Env):
     img = np.round(img).astype(np.uint8)
     img = img.reshape(64, 64, 3)
     if upsize:
-      img = resize(img, (640, 640))
+      img = resize(img, (640, 640), anti_aliasing=True, preserve_range=True).astype(np.uint8)
     return img
 
   def _render(self, mode='human', close=False):

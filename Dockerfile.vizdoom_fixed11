@@ -1,0 +1,98 @@
+FROM ubuntu:18.04
+
+# Stage 1: System dependencies
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libboost-all-dev \
+    libsdl2-dev \
+    python3-dev \
+    python3-pip \
+    wget \
+    zlib1g-dev \
+    libjpeg-dev \
+    libfluidsynth-dev \
+    libgme-dev \
+    libopenal-dev \
+    libmpg123-dev \
+    libsndfile1-dev \
+    libwildmidi-dev \
+    libgtk2.0-dev \
+    nasm \
+    tar \
+    unzip \
+    python3-numpy \
+    python3-setuptools \
+    && rm -rf /var/lib/apt/lists/* && \
+    ln -s /usr/lib/x86_64-linux-gnu/libboost_* /usr/lib/
+
+# Stage 2: Python environment
+RUN pip3 install --upgrade pip && \
+    pip3 install \
+    tensorflow==1.8.0 \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.2.0 \
+    pillow==6.2.2 \
+    matplotlib==2.2.3
+
+# Stage 3: VizDoom
+WORKDIR /tmp
+
+# Clone VizDoom and initialize submodules
+RUN git clone https://github.com/mwydmuch/ViZDoom.git && \
+    cd ViZDoom && \
+    git checkout 1.1.8 && \
+    git submodule update --init
+
+# Apply fixes to VizDoom source
+WORKDIR /tmp/ViZDoom
+
+# Create header with boost includes
+RUN echo '#include <boost/bind/bind.hpp>\n#include <boost/bind/placeholders.hpp>\nusing namespace boost::placeholders;' > boost_includes.hpp
+
+# Fix namespace and boost::bind issues
+RUN sed -i 's/namespace bpl.*= boost::placeholders;//' src/lib/ViZDoomController.h && \
+    sed -i '1i#include "../boost_includes.hpp"' src/lib/ViZDoomController.cpp && \
+    sed -i 's/boost::bind/boost::bind/g' src/lib/ViZDoomController.cpp && \
+    sed -i 's/bpl::/_/g' src/lib/ViZDoomController.cpp && \
+    sed -i 's/\= NULL;/= 0;/g' src/vizdoom/src/viz_game.cpp && \
+    sed -i 's/\!= NULL/!= 0/g' src/vizdoom/src/viz_main.cpp
+
+# Build VizDoom
+RUN mkdir build && \
+    cd build && \
+    CXXFLAGS="-DBOOST_BIND_GLOBAL_PLACEHOLDERS -Wno-pointer-arith -Wno-conversion-null" \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+         -DBUILD_PYTHON=ON \
+         -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+         -DPython_ADDITIONAL_VERSIONS=3.6 \
+         -DBoost_NO_BOOST_CMAKE=ON \
+         .. && \
+    make -j$(nproc) VERBOSE=1 || make && \
+    cd .. && \
+    python3 setup.py install
+
+# Stage 4: VizDoom Gym environments
+WORKDIR /tmp
+RUN git clone https://github.com/ppaquette/gym-doom.git && \
+    cd gym-doom && \
+    git reset --hard 60ff576 && \
+    pip3 install -e .
+
+# Create working directory
+WORKDIR /app
+
+# Test script
+RUN echo "from __future__ import print_function; \
+import tensorflow as tf; \
+import vizdoom; \
+print('TensorFlow version:', tf.__version__); \
+print('ViZDoom version:', vizdoom.__version__); \
+sess = tf.Session(); \
+print('TensorFlow session created successfully')" > test_env.py
+
+CMD ["python3", "test_env.py"]

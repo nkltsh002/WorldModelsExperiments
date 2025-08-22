@@ -1,0 +1,64 @@
+FROM nvidia/cuda:11.0.3-base-ubuntu18.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    python3-dev \
+    python3-pip \
+    git \
+    vim \
+    build-essential \
+    cmake \
+    libboost-all-dev \
+    libsdl2-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    wget \
+    unzip \
+    libzmq3-dev \
+    pkg-config \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install numpy
+
+# Create a more comprehensive boost fixes file
+RUN echo '#include <boost/version.hpp>\n\
+#include <boost/bind/bind.hpp>\n\
+#include <boost/function.hpp>\n\
+#include <boost/shared_ptr.hpp>\n\
+namespace bpl = boost::placeholders;\n\
+using namespace boost::placeholders;\n\
+using _1 = boost::placeholders::_1;\n\
+using _2 = boost::placeholders::_2;\n\
+using _3 = boost::placeholders::_3;\n\
+using _4 = boost::placeholders::_4;\n\
+namespace boost { \n\
+  namespace { \n\
+    const boost::arg<1> _1_{}; \n\
+    const boost::arg<2> _2_{}; \n\
+  } \n\
+}' > /tmp/boost_includes.hpp
+
+WORKDIR /tmp
+RUN git clone --recursive https://github.com/ppaquette/gym-doom.git && \
+    cd gym-doom && \
+    git reset --hard 60ff576 && \
+    cd doom_py && \
+    rm -rf vizdoom && \
+    git clone --recursive https://github.com/mwydmuch/ViZDoom.git vizdoom && \
+    cd vizdoom && \
+    git checkout 1.1.8
+
+# Apply fixes to source files
+RUN cd /tmp/gym-doom/doom_py/vizdoom && \
+    for f in src/lib/*.cpp; do \
+        sed -i '1i#include "/tmp/boost_includes.hpp"' ; \
+    done
+
+# Continue with installation
+RUN cd /tmp/gym-doom && \
+    BOOST_ROOT=/usr/include/boost pip3 install -e .
+
+WORKDIR /worldmodels
