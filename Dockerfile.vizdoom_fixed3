@@ -1,0 +1,90 @@
+FROM ubuntu:18.04
+
+# Stage 1: System dependencies
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libboost-all-dev \
+    libsdl2-dev \
+    python3-dev \
+    python3-pip \
+    wget \
+    zlib1g-dev \
+    libjpeg-dev \
+    libfluidsynth-dev \
+    libgme-dev \
+    libopenal-dev \
+    libmpg123-dev \
+    libsndfile1-dev \
+    libwildmidi-dev \
+    libgtk2.0-dev \
+    nasm \
+    tar \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Stage 2: Python environment
+RUN pip3 install --upgrade pip && \
+    pip3 install \
+    tensorflow==1.8.0 \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    scipy==1.2.0 \
+    pillow==6.2.2 \
+    matplotlib==2.2.3
+
+# Stage 3: VizDoom
+WORKDIR /tmp
+
+# Clone VizDoom and initialize submodules
+RUN git clone https://github.com/mwydmuch/ViZDoom.git && \
+    cd ViZDoom && \
+    git checkout 1.1.8 && \
+    git submodule update --init
+
+# Apply fixes to VizDoom source
+WORKDIR /tmp/ViZDoom
+RUN if [ -f src/lib/ViZDoomController.h ]; then \
+        sed -i 's/namespace bpl.*= boost::placeholders;//' src/lib/ViZDoomController.h; \
+    fi && \
+    if [ -f src/lib/ViZDoomController.cpp ]; then \
+        sed -i 's/boost::bind/std::bind/g' src/lib/ViZDoomController.cpp; \
+    fi
+
+# Build VizDoom
+RUN mkdir build && \
+    cd build && \
+    CXXFLAGS="-DBOOST_BIND_GLOBAL_PLACEHOLDERS" \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+         -DBUILD_PYTHON=ON \
+         -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+         -DBOOST_ROOT=/usr/lib/x86_64-linux-gnu \
+         -DBoost_NO_SYSTEM_PATHS=ON \
+         .. && \
+    make -j$(nproc) && \
+    cd .. && \
+    python3 setup.py install
+
+# Stage 4: VizDoom Gym environments
+WORKDIR /tmp
+RUN git clone https://github.com/ppaquette/gym-doom.git && \
+    cd gym-doom && \
+    git reset --hard 60ff576 && \
+    pip3 install -e .
+
+# Create working directory
+WORKDIR /app
+
+# Test script
+RUN echo "from __future__ import print_function; \
+import tensorflow as tf; \
+import vizdoom; \
+print('TensorFlow version:', tf.__version__); \
+print('ViZDoom version:', vizdoom.__version__); \
+sess = tf.Session(); \
+print('TensorFlow session created successfully')" > test_env.py
+
+CMD ["python3", "test_env.py"]

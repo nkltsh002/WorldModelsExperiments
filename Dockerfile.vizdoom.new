@@ -1,0 +1,74 @@
+FROM ubuntu:16.04
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libboost-all-dev \
+    libgtk2.0-dev \
+    libsdl2-dev \
+    python3.5-dev \
+    python3-pip \
+    python3-numpy \
+    wget \
+    zlib1g-dev \
+    libbz2-dev \
+    libffi-dev \
+    libfreetype6-dev \
+    libjpeg-dev \
+    liblzma-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libpng-dev \
+    libreadline-dev \
+    libssl-dev \
+    libsqlite3-dev \
+    libx11-dev \
+    libgl1-mesa-dev \
+    tk-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Update alternatives for Python
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.5 1
+
+# Upgrade pip and install Cython
+RUN pip3 install --upgrade pip==20.3.4 \
+    && pip3 install cython==0.29.21
+
+# Install Python dependencies
+RUN pip3 install \
+    tensorflow==1.8.0 \
+    numpy==1.13.3 \
+    gym==0.9.4 \
+    cma==2.2.0 \
+    mpi4py==2.0.0 \
+    matplotlib==2.2.3 \
+    jupyter \
+    pillow \
+    scipy==1.0.0
+
+# Clone and build VizDoom (using a specific commit that works with Python 3.5)
+RUN git clone https://github.com/mwydmuch/ViZDoom.git \
+    && cd ViZDoom \
+    && git checkout 1.1.8 \
+    && python3 setup.py build \
+    && python3 setup.py install
+
+# Clone VizDoom gym environments (using a specific commit)
+RUN git clone https://github.com/ppaquette/gym-doom.git \
+    && cd gym-doom \
+    && git reset --hard 60ff576 \
+    && pip3 install -e .
+
+# Create working directory
+WORKDIR /app
+
+# Copy the code
+COPY . /app/
+
+# Expose port for Jupyter Notebook
+EXPOSE 8888
+
+# Default command
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
