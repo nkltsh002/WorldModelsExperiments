@@ -29,7 +29,7 @@ eval_steps = 25 # evaluate every N_eval steps
 retrain_mode = True
 cap_time_mode = True
 
-num_worker = 8
+num_worker = 4  # Reduced for local Windows machine
 num_worker_trial = 1
 
 population = num_worker * num_worker_trial
@@ -415,8 +415,9 @@ def mpi_fork(n):
       OMP_NUM_THREADS="1",
       IN_MPI="1"
     )
-    print( ["mpirun", "-np", str(n), sys.executable] + sys.argv)
-    subprocess.check_call(["mpirun", "-np", str(n), sys.executable] +['-u']+ sys.argv, env=env)
+    mpi_cmd = "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe"
+    print( [mpi_cmd, "-n", str(n), sys.executable] + sys.argv)
+    subprocess.check_call([mpi_cmd, "-n", str(n), sys.executable] +['-u']+ sys.argv, env=env)
     return "parent"
   else:
     global nworkers, rank

@@ -1,7 +1,7 @@
 import numpy as np
 import gym
 
-from scipy.misc import imresize as resize
+from skimage.transform import resize
 from gym.spaces.box import Box
 from gym.envs.box2d.car_racing import CarRacing
 
@@ -10,7 +10,7 @@ SCREEN_Y = 64
 
 def _process_frame(frame):
   obs = frame[0:84, :, :].astype(np.float)/255.0
-  obs = resize(obs, (64, 64))
+  obs = resize(obs, (64, 64), anti_aliasing=True, preserve_range=True)
   obs = ((1.0 - obs) * 255).round().astype(np.uint8)
   return obs
 
